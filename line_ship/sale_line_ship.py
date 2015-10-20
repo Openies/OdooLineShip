@@ -21,19 +21,28 @@
 ##############################################################################
 
 from openerp import models, fields, api, _
-from openerp.exceptions import Warning
+
+
+class SaleOrderLine(models.Model):
+
+    _inherit = "sale.order.line"
+
+    order_partner_id = fields.Many2one(
+        "res.partner", string='Customer', readonly=False, related=False)
 
 
 class SaleOrder(models.Model):
     
     _inherit = 'sale.order'
     
-    def _prepare_order_line_procurement(self, cr, uid, order, line, group_id=False, context=None):
+    def _prepare_order_line_procurement(
+            self, cr, uid, order, line, group_id=False, context=None):
         vals = super(SaleOrder, self)._prepare_order_line_procurement(cr, uid, order, line, group_id, context)
-        if line and line.address_allotment_id:
-            vals['partner_dest_id'] = line.address_allotment_id.id
+        if line and line.order_partner_id:
+            vals['partner_dest_id'] = line.order_partner_id.id
         return vals
-    
+
+
 class procurement_order(models.Model):
     
     _inherit = 'procurement.order'
@@ -43,38 +52,48 @@ class procurement_order(models.Model):
         if procurement.partner_dest_id.id:
             vals.update({'partner_id': procurement.partner_dest_id.id})
         return vals
-    
+
+
 class StockMove(models.Model):
     
     _inherit = 'stock.move'
-    
-    def _picking_assign(self, cr, uid, move_ids, procurement_group, location_from, location_to, context=None):
-        partner_dict = {}
-        vals = super(StockMove, self)._picking_assign(cr, uid, move_ids, procurement_group, location_from, location_to, context)
-        move_rec = self.browse(cr, uid, move_ids, context=context)
-        for move in move_rec:
-            if not partner_dict.get(move.partner_id.id, False):
-                partner_dict.update({move.partner_id.id : [move.id]})
-            else:
-                partner_dict.get(move.partner_id.id).append(move.id)
-        pick_obj = self.pool.get('stock.picking')
-        for key in partner_dict.keys():
-            move = move_rec[0]
-            if partner_dict.keys().index(key) == 0:
-                self.write(cr, uid, partner_dict.get(key), {'partner_id': key}, context=context)
-                pick_obj.write(cr, uid, [move.picking_id.id],{'partner_id': key}, context=context)
-            else:
-                values = {
-                    'origin': move.origin,
-                    'company_id': move.company_id and move.company_id.id or False,
-                    'move_type': move.group_id and move.group_id.move_type or 'direct',
-                    'partner_id': key or False,
-                    'picking_type_id': move.picking_type_id and move.picking_type_id.id or False,
-                }
-                pick = pick_obj.create(cr, uid, values, context=context)
-                self.write(cr, uid, partner_dict.get(key), {'picking_id': pick}, context=context)
+
+    @api.multi
+    def _picking_assign(self):
+        vals = super(StockMove, self)._picking_assign()
+        pick_obj = self.env['stock.picking']
+        for move in self:
+            line_partner_id = \
+                move.procurement_id.sale_line_id.order_partner_id.id
+            picking_partner_id = move.picking_id.partner_id.id
+            if not line_partner_id:
+                continue
+            if picking_partner_id != line_partner_id:
+                picks = pick_obj.search([
+                    ('partner_id', '=', line_partner_id),
+                    ('group_id', '=', move.group_id.id),
+                    ('location_id', '=', move.location_id.id),
+                    ('location_dest_id', '=', move.location_dest_id.id),
+                    ('picking_type_id', '=', move.picking_type_id.id),
+                    ('printed', '=', False),
+                    ('state', 'in',
+                        ['draft', 'confirmed', 'waiting',
+                         'partially_available', 'assigned'])
+                    ], limit=1)
+                if len(picks):
+                    move.write({'picking_id': picks.id})
+                else:
+                    print "in the elseeee"
+                    values = {
+                        'partner_id': line_partner_id,
+                        'origin': move.origin,
+                        'company_id': move.company_id and move.company_id.id or False,
+                        'move_type': move.group_id and move.group_id.move_type or 'direct',
+                        'picking_type_id': move.picking_type_id and move.picking_type_id.id or False,
+                        'location_id': move.location_id.id,
+                        'location_dest_id': move.location_dest_id.id,
+                    }
+                    picks = pick_obj.create(values)
+                    move.write({'picking_id': picks.id})
         return vals
-        
-
-
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

@@ -23,16 +23,17 @@
 {
     'name': 'Line ship',
     'version': '1.0',
-    'category': 'sale',
+    'category': 'Sales Management',
     'description': """
 Module to create sale order line wise shipment based on address defined on sale order line.
 """,
-    'summary': "Order Line, Shipment, Allotment Partner",
+    'summary': "Order Line, Allotment Partner, Shipment",
     'author': 'Openies',
     'website': 'http://www.Openies.com/',
     'images': [],
     'depends': ['sale_stock'],
     'data': [
+        'sale_line_ship_view.xml',
     ],
     'installable': True,
     'auto_install': False,

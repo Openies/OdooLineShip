@@ -25,7 +25,8 @@
     'version': '1.0',
     'category': 'Sales Management',
     'description': """
-Module to create sale order line wise shipment based on address defined on sale order line.
+Enables functionality to use allotment partner on the sale order line.
+If the allotment partner is defined on the sale order line, when you confirm the order it will group the delivary order based on allotment partner.
 """,
     'summary': "Order Line, Allotment Partner, Shipment",
     'author': 'Openies',

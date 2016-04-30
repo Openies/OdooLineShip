@@ -28,7 +28,7 @@
 Module to create sale order line wise shipment based on address defined on sale order line.
 """,
     'summary': "Order Line, Allotment Partner, Shipment",
-    'author': 'Openies',
+    'author': 'Openies Services',
     'website': 'http://www.Openies.com/',
     'images': [],
     'depends': ['sale_stock'],

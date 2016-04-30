@@ -29,7 +29,7 @@ Enables functionality to use allotment partner on the sale order line.
 If the allotment partner is defined on the sale order line, when you confirm the order it will group the delivary order based on allotment partner.
 """,
     'summary': "Order Line, Allotment Partner, Shipment",
-    'author': 'Openies',
+    'author': 'Openies Services',
     'website': 'http://www.Openies.com/',
     'images': [],
     'depends': ['sale_stock'],
